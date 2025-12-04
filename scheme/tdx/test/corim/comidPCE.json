@@ -1,0 +1,213 @@
+{
+    "lang": "en-GB",
+    "tag-identity": {
+        "id": "43BBE37F-2E61-4B33-AED3-53CFF1428B17",
+        "version": 0
+    },
+    "entities": [
+        {
+            "name": "INTEL",
+            "regid": "https://intel.com",
+            "roles": [
+                "tagCreator",
+                "creator",
+                "maintainer"
+            ]
+        }
+    ],
+    "triples": {
+        "reference-values": [
+            {
+                "environment": {
+                    "class": {
+                        "id": {
+                            "type": "oid",
+                            "value": "2.16.840.1.113741.1.2.3.4.6"
+                        },
+                        "vendor": "Intel Corporation",
+                        "model": "0123456789ABCDEF"
+                    }
+                },
+                "measurements": [
+                    {
+                        "value": {
+                            "instanceid": {
+                                "type": "uint",
+                                "value": 11
+                            },
+                            "tcbcompsvn": [
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 2
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "numeric-expression",
+                                    "value": {
+                                        "numeric-operator": "greater_or_equal",
+                                        "numeric-type": {
+                                            "type": "uint",
+                                            "value": 10
+                                        }
+                                    }
+                                }
+                            ],
+                            "pceid": "0000"
+                        },
+                        "authorized-by": [
+                            {
+                                "type": "pkix-base64-key",
+                                "value": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFn0taoAwR3PmrKkYLtAsD9o05KSM6mbgfNCgpuL0g6VpTHkZl73wk5BDxoV7n+Oeee0iIqkW3HMZT3ETiniJdg==\n-----END PUBLIC KEY-----"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

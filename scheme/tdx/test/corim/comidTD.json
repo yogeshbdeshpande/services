@@ -1,0 +1,95 @@
+
+{
+  "lang": "en-GB",
+  "tag-identity": {
+    "id": "43BBE37F-2E61-4B33-AED3-53CFF1428B16",
+    "version": 0
+  },
+  "entities": [
+    {
+      "name": "INTEL",
+      "regid": "https://intel.com",
+      "roles": [
+        "tagCreator",
+        "creator",
+        "maintainer"
+      ]
+    }
+  ],
+  "triples": {
+    "reference-values": [
+      {
+        "environment": {
+          "class": {
+            "id": {
+					"type": "oid",
+                    "value": "2.16.840.1.113741.1.2.3.4.6"
+            },
+            "vendor": "Intel Corporation",
+            "model": "0123456789ABCDEF"
+          }
+        },
+        "measurements": [
+          {
+            "key": "MRTD",
+            "value": {
+              "digests": [
+                "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
+              ]
+            }
+          },
+          {
+            "key": "RTMR0",
+            "value": {
+              "digests": [
+                "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
+              ]
+            }
+          },
+          {
+            "key": "RTMR1",
+            "value": {
+              "digests": [
+                "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
+              ]
+            }
+          },
+          {
+            "key": "RTMR2",
+            "value": {
+              "digests": [
+                "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
+              ]
+            }
+          },
+          {
+            "key": "RTMR3",
+            "value": {
+              "digests": [
+                "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
+              ]
+            }
+          },
+          {
+            "key": "XFAM",
+            "value": {
+              "raw-value": {
+                "type": "bytes",
+                "value": "AQcGBQQDAgEADw4NDAsKCQgXFhUUExIREB8eHRwbGhkY"
+              }
+            }
+          },
+          {
+            "key": "TDAttributes",
+            "value": {
+              "raw-value": {
+                "type": "bytes",
+                "value": "AQcGBQQDAgEADw4NDAsKCQgXFhUUExIREB8eHRwbGhkY"
+              }
+            }
+          }  
+        ]
+      }
+    ]
+  }
+}
