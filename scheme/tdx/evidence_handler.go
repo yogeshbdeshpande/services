@@ -127,20 +127,17 @@ func extractProvisionedTA(trustAnchors []string) (*comid.CryptoKey, error) {
 	return provisionedArk, nil
 }
 
-func validateCertificateChain(certChain *tdx.CertificationData) error {
+func validateCertificateChain(certChain any) error {
 
 	return nil
 }
 
-func validateTA(certChain *tdx.CertificateChain, provisionedArk *comid.CryptoKey) error {
-	if !bytes.Equal(certChain.GetArkCert(), []byte(provisionedArk.String())) {
-		return handler.BadEvidence(ErrTAMismatch)
-	}
+func validateTA(certChain any, provisionedArk *comid.CryptoKey) error {
 
 	return nil
 }
 
-func validateReportIntegrity(tsm *tokens.TSMReport, certChain *tdx.CertificateChain) error {
+func validateReportIntegrity(tsm *tokens.TSMReport, certChain any) error {
 
 	return nil
 }
@@ -315,33 +312,6 @@ func compareMeasurements(refM comid.Measurement, evM comid.Measurement) bool {
 }
 
 func compareTcb(refM comid.Measurement, evM comid.Measurement) bool {
-	if refM.Val.SVN == nil {
-		log.Errorf("%w", ErrReferenceMissingSVN)
-		return false
-	}
-
-	if evM.Val.SVN == nil {
-		log.Errorf("%w", ErrEvidenceMissingSVN)
-		return false
-	}
-
-	refTcbParts, err := transformSVNtoTCB(*refM.Val.SVN)
-	if err != nil {
-		log.Errorf("could not transform reference SVN to TCB parts: %v", err)
-		return false
-	}
-
-	evTcbParts, err := transformSVNtoTCB(*evM.Val.SVN)
-	if err != nil {
-		log.Errorf("could not transform evidence SVN to TCB parts: %v", err)
-	}
-
-	if evTcbParts.BlSpl < refTcbParts.BlSpl ||
-		evTcbParts.SnpSpl < refTcbParts.SnpSpl ||
-		evTcbParts.TeeSpl < refTcbParts.TeeSpl ||
-		evTcbParts.UcodeSpl < refTcbParts.UcodeSpl {
-		return false
-	}
 
 	return true
 }

@@ -40,7 +40,7 @@ func (o Extractor) RefValExtractor(rvs comid.ValueTriples) ([]*handler.Endorseme
 
 // TaExtractor Processes the verification keys supplied in the Endorsement
 //
-// The trust anchor for SEV-SNP is AMD Root Key (ARK). Stores the key triple in the database as-is.
+// The trust anchor for TDX is the Intel CA Certificate to be provisioned in the TA Store.
 func (o Extractor) TaExtractor(avk comid.KeyTriple) (*handler.Endorsement, error) {
 	if len(avk.VerifKeys) > 1 {
 		return nil, fmt.Errorf("expecting at most one key, got %d keys", len(avk.VerifKeys))
