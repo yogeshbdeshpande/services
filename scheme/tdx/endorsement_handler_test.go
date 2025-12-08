@@ -41,7 +41,15 @@ func TestDecoder_GetSupportedMediaTypes(t *testing.T) {
 
 func TestDecoder_Decode_OK(t *testing.T) {
 	d := &EndorsementHandler{}
+	tvs := [][]byte{
+		unsignedCorimTdxPlatformPce,
+		unsignedCorimTdxPlatformQe,
+		unsignedCorimTdxPlatformModule,
+		unsignedCorimTdxTd,
+	}
 
-	_, err := d.Decode(unsignedCorimTdxPlatformModule, "", nil)
-	assert.NoError(t, err)
+	for _, tv := range tvs {
+		_, err := d.Decode(tv, "", nil)
+		assert.NoError(t, err)
+	}
 }

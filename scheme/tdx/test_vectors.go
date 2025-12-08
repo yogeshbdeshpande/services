@@ -5,6 +5,11 @@ package tdx
 import _ "embed"
 
 var (
+	//go:embed test/corim/unsignedCorimTdxPlatformComidPce.cbor
+	unsignedCorimTdxPlatformPce []byte
+
+	//go:embed test/corim/unsignedCorimTdxPlatformComidQe.cbor
+	unsignedCorimTdxPlatformQe []byte
 
 	//go:embed test/corim/unsignedCorimTdxPlatformComidTdxModule.cbor
 	unsignedCorimTdxPlatformModule []byte
