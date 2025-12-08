@@ -13,9 +13,15 @@ TEST_DIR=$1
 COMID=$2
 CORIM=$3
 QUALIFIER=$4
+PROFILE=""
+
+if [[ -n "$5" ]]; then
+    echo "Profile is supplied: $5"
+	PROFILE=$5
+fi
 
 echo "generating test vector using $COMID $CORIM"
-cocli comid create -t "$TEST_DIR/src/$COMID.json" -o "$TEST_DIR"
-cocli corim create -m "$TEST_DIR/$COMID.cbor" -t "$TEST_DIR/src/$CORIM.json" \
+cocli comid create -t "$TEST_DIR/src/$COMID.json" -p "$PROFILE" -o "$TEST_DIR"
+cocli corim create -m "$TEST_DIR/$COMID.cbor" -p "$PROFILE" -t "$TEST_DIR/src/$CORIM.json" \
 	-o "$TEST_DIR/$QUALIFIER${CORIM^}${COMID^}.cbor"
 rm "$TEST_DIR/$COMID.cbor"

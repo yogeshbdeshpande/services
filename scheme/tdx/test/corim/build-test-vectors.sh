@@ -8,6 +8,7 @@ set -o pipefail
 THIS_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 GEN_CORIM="$THIS_DIR/../../../common/scripts/gen-corim"
 
+PROFILE="2.16.840.1.113741.1.16.1"
 SUBATTESTERS=(
 	tdx_platform
 	tdx_td
@@ -50,7 +51,7 @@ generate_templates() {
 	do
 		for comid in "${COMID_TEMPLATES[@]}"
 		do
-			"$GEN_CORIM" "$THIS_DIR" "$comid" "$corim" "unsigned"
+			"$GEN_CORIM" "$THIS_DIR" "$comid" "$corim" "unsigned" "$PROFILE"
 		done
 	done
 

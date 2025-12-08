@@ -31,7 +31,21 @@
         },
         "measurements": [
           {
-            "key": "MRTD",
+            "key": {
+              "type": "string",
+              "value": "MRTD"
+            },
+            "value": {
+              "digests": [
+                "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
+              ]
+            }
+          },
+          { 
+            "key": {
+              "type": "string",
+              "value":  "RTMR0"
+            },
             "value": {
               "digests": [
                 "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
@@ -39,7 +53,10 @@
             }
           },
           {
-            "key": "RTMR0",
+            "key": {
+              "type": "string",
+              "value":  "RTMR1"
+            },
             "value": {
               "digests": [
                 "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
@@ -47,7 +64,10 @@
             }
           },
           {
-            "key": "RTMR1",
+            "key": {
+              "type": "string",
+              "value":  "RTMR2"
+            },
             "value": {
               "digests": [
                 "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
@@ -55,7 +75,10 @@
             }
           },
           {
-            "key": "RTMR2",
+            "key": {
+              "type": "string",
+              "value":  "RTMR3"
+            },
             "value": {
               "digests": [
                 "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
@@ -63,15 +86,10 @@
             }
           },
           {
-            "key": "RTMR3",
-            "value": {
-              "digests": [
-                "sha-256:BwYFBAMCAQAPDg0MCwoJCBcWFRQTEhEQHx4dHBsaGRg="
-              ]
-            }
-          },
-          {
-            "key": "XFAM",
+            "key": {
+              "type": "string",
+              "value":  "XFAM"
+            },
             "value": {
               "raw-value": {
                 "type": "bytes",
@@ -79,8 +97,11 @@
               }
             }
           },
-          {
-            "key": "TDAttributes",
+          { 
+            "key": {
+              "type": "string",
+              "value":  "TDAttributes"
+            },
             "value": {
               "raw-value": {
                 "type": "bytes",
