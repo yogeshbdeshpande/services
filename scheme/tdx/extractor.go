@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/veraison/corim/comid"
+	_ "github.com/veraison/corim/profiles/tdx"
 	"github.com/veraison/services/handler"
 )
 

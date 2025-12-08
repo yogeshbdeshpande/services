@@ -46,9 +46,8 @@ func UnsignedCorimDecoder(
 			return nil, fmt.Errorf("unknown CBOR tag %x detected at index %d", tag.Number, i)
 		}
 
-		var c comid.Comid
-
-		err := c.FromCBOR(tag.Content)
+		var c *comid.Comid
+		c, err := corim.UnmarshalComidFromCBOR(tag.Content, uc.Profile)
 		if err != nil {
 			return nil, fmt.Errorf("decoding failed for CoMID at index %d: %w", i, err)
 		}

@@ -5,7 +5,7 @@ package main
 import (
 	"github.com/veraison/services/handler"
 	"github.com/veraison/services/plugin"
-	scheme "github.com/veraison/services/scheme/sevsnp"
+	scheme "github.com/veraison/services/scheme/tdx"
 )
 
 func main() {

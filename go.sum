@@ -893,6 +893,8 @@ github.com/google/go-configfs-tsm v0.3.2 h1:ZYmHkdQavfsvVGDtX7RRda0gamelUNUhu0A9
 github.com/google/go-configfs-tsm v0.3.2/go.mod h1:EL1GTDFMb5PZQWDviGfZV9n87WeGTR/JUg13RfwkgRo=
 github.com/google/go-sev-guest v0.14.1 h1:j/DXy9jk1qSW/dEV9vDiQnhAVFD1zqnWNVu6p1J0Jgo=
 github.com/google/go-sev-guest v0.14.1/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
+github.com/google/go-tdx-guest v0.3.1 h1:gl0KvjdsD4RrJzyLefDOvFOUH3NAJri/3qvaL5m83Iw=
+github.com/google/go-tdx-guest v0.3.1/go.mod h1:/rc3d7rnPykOPuY8U9saMyEps0PZDThLk/RygXm04nE=
 github.com/google/go-tpm v0.1.2-0.20190725015402-ae6dd98980d4/go.mod h1:H9HbmUG2YgV/PHITkO7p6wxEEj/v5nlsVWIwumwH2NI=
 github.com/google/go-tpm v0.3.0/go.mod h1:iVLWvrPp/bHeEkxTFi9WG6K9w0iy2yIszHwZGHPbzAw=
 github.com/google/go-tpm v0.3.3 h1:P/ZFNBZYXRxc+z7i5uyd8VP7MaDteuLZInzrH2idRGo=
@@ -1225,8 +1227,8 @@ github.com/veraison/ccatoken v1.3.2-0.20250512122414-b26aba0635c4 h1:t2GQueIc1Sr
 github.com/veraison/ccatoken v1.3.2-0.20250512122414-b26aba0635c4/go.mod h1:vMqdbW4H/8A3oT+24qssuIK3Aefy06XqzTELGg+gWAg=
 github.com/veraison/cmw v0.2.0 h1:BWEvwZnD4nn5osq6XwQpTRcGxwV+Su4t6ytdAbVXAJY=
 github.com/veraison/cmw v0.2.0/go.mod h1:OiYKk1t6/Fmmg30ZpSMzi4nKr5kt3374sNTkgxC5BDs=
-github.com/veraison/corim v1.1.3-0.20251002172919-3c18c66c77b0 h1:rl3ANdIHIStRQEYVhU0BaNc87j0W38iWqTwu0HYcuMA=
-github.com/veraison/corim v1.1.3-0.20251002172919-3c18c66c77b0/go.mod h1:NDUWXTTPOnpwTa79HULq+o/6dkgK6XymHdSRGP9YP8M=
+github.com/veraison/corim v1.1.3-0.20251205175433-99209e64fc22 h1:hBMX9Bnb71O/w0z3bmEWiawHqDWeSSLSMI1xWI+xYDQ=
+github.com/veraison/corim v1.1.3-0.20251205175433-99209e64fc22/go.mod h1:96PQ0lk+O9bzutKTDz66G2DaARYUp1BeR06EYwEwSH0=
 github.com/veraison/dice v0.0.1 h1:dOm7ByDN/r4WlDsGkEUXzdPMXgTvAPTAksQ8+BwBrD4=
 github.com/veraison/dice v0.0.1/go.mod h1:QPMLc5LVMj08VZ+HNMYk4XxWoVYGAUBVm8Rd5V1hzxs=
 github.com/veraison/ear v1.1.2 h1:Xs41FqAG8IyJaceqNFcX2+nf51Et1uyhmCJV8SZqw/8=
@@ -1241,8 +1243,8 @@ github.com/veraison/psatoken v1.2.1-0.20240912124429-aec3ece7886e h1:W1OWcrRvfN0
 github.com/veraison/psatoken v1.2.1-0.20240912124429-aec3ece7886e/go.mod h1:bXUwdYAGcRoclxe73JmO8Z9ngV9KDHqW20afM9Q0FKo=
 github.com/veraison/ratsd v0.0.0-20251002182229-94bebd610d15 h1:7oo/WsvzHgm54FtzMq5g4GzU2dZmEJUQ21wPrSarNxQ=
 github.com/veraison/ratsd v0.0.0-20251002182229-94bebd610d15/go.mod h1:RFQMnjXCJVqc8V33F4BCAE76E0fjHS+4b+JkCAlUiJk=
-github.com/veraison/swid v1.1.1-0.20230911094910-8ffdd07a22ca h1:osmCKwWO/xM68Kz+rIXio1DNzEY2NdJOpGpoy5r8NlE=
-github.com/veraison/swid v1.1.1-0.20230911094910-8ffdd07a22ca/go.mod h1:d5jt76uMNbTfQ+f2qU4Lt8RvWOTsv6PFgstIM1QdMH0=
+github.com/veraison/swid v1.1.1-0.20251003121634-fd1f7f1e1897 h1:ze1ulqK70S7PRignyZzFDBJHNVEDyISk5FDv9Uh3UFw=
+github.com/veraison/swid v1.1.1-0.20251003121634-fd1f7f1e1897/go.mod h1:d5jt76uMNbTfQ+f2qU4Lt8RvWOTsv6PFgstIM1QdMH0=
 github.com/virtee/sev-snp-measure-go v0.0.0-20241128091219-920346c42ecb h1:iBPEloogBk7uK2Ygtz1l6gJabikXs8ASZCmormbn2lM=
 github.com/virtee/sev-snp-measure-go v0.0.0-20241128091219-920346c42ecb/go.mod h1:dEkBe8JnxU5itNjZDEQINFd7f7l4DtjfqRuzPQcit4w=
 github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
