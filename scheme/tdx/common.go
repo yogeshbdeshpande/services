@@ -9,8 +9,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/go-sev-guest/proto/sevsnp"
-	"github.com/google/go-tdx-guest/abi"
 	"github.com/veraison/cmw"
 	"github.com/veraison/corim/comid"
 	"github.com/veraison/corim/corim"
@@ -123,18 +121,4 @@ func parseAttestationToken(token *proto.AttestationToken) (*tokens.TSMReport, er
 	}
 
 	return tsm, nil
-}
-
-func parseCertificateChainFromEvidence(tsm *tokens.TSMReport) (*sevsnp.CertificateChain, error) {
-	var certTable abi.CertTable
-
-	if len(tsm.AuxBlob) == 0 {
-		return nil, ErrMissingCertChain
-	}
-
-	if err := certTable.Unmarshal(tsm.AuxBlob); err != nil {
-		return nil, err
-	}
-
-	return certTable.Proto(), nil
 }

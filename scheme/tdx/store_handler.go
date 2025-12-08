@@ -12,9 +12,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/veraison/corim/comid"
-	"github.com/veraison/ratsd/tokens"
 	"github.com/veraison/services/handler"
 	"github.com/veraison/services/proto"
 )
@@ -130,32 +128,12 @@ func (s StoreHandler) SynthKeysFromTrustAnchor(_ string, ta *handler.Endorsement
 // table. Extract ARK from it and construct the TA key.
 func (s StoreHandler) GetTrustAnchorIDs(token *proto.AttestationToken) ([]string, error) {
 	var (
-		tsm       *tokens.TSMReport
-		certChain *sevsnp.CertificateChain
-		ark       []byte
-		cert      *x509.Certificate
-		err       error
+		name string = "abcd"
 	)
-
-	if tsm, err = parseAttestationToken(token); err != nil {
-		return nil, err
-	}
-
-	if certChain, err = parseCertificateChainFromEvidence(tsm); err != nil {
-		return nil, err
-	}
-
-	if ark, err = readCert(certChain.GetArkCert()); err != nil {
-		return nil, fmt.Errorf("can't read ARK to compose TA ID: %w", err)
-	}
-
-	if cert, err = x509.ParseCertificate(ark); err != nil {
-		return nil, err
-	}
 
 	u := url.URL{
 		Scheme: SchemeName,
-		Path:   cert.Issuer.CommonName,
+		Path:   name,
 	}
 
 	return []string{u.String()}, nil
