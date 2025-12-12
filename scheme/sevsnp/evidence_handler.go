@@ -5,15 +5,17 @@ package sevsnp
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/proto/sevsnp"
-	"github.com/google/go-sev-guest/verify"
-	"github.com/google/go-sev-guest/verify/trust"
+	tdxAbi "github.com/google/go-tdx-guest/abi"
+	tdxProto "github.com/google/go-tdx-guest/proto/tdx"
+	tdxVerify "github.com/google/go-tdx-guest/verify"
+	tdxVerifyTrust "github.com/google/go-tdx-guest/verify/trust"
 	sevsnpParser "github.com/jraman567/go-gen-ref/cmd/sevsnp"
 	"github.com/veraison/corim/comid"
 	"github.com/veraison/corim/corim"
@@ -25,18 +27,20 @@ import (
 )
 
 var (
-	ErrNoARK                 = errors.New("missing ARK certificate in evidence")
-	ErrNoASK                 = errors.New("missing ASK certificate in evidence")
-	ErrNoVEK                 = errors.New("evidence must supply VLEK or VCEK")
-	ErrNoVCEK                = errors.New("VCEK is missing")
-	ErrNoVLEK                = errors.New("VLEK is missing")
-	ErrTAMismatch            = errors.New("evidence Trust Anchor (ARK) doesn't match the provisioned one")
-	ErrNoProvisionedTA       = errors.New("missing provisioned Trust Anchor")
-	ErrNoProvisionedRV       = errors.New("reference value unavailable for attester")
-	ErrBadSigningKey         = errors.New("bad signing key in attestation report")
-	ErrMismatchedReportedTCB = errors.New("reported TCB in evidence doesn't match reference")
-	ErrReferenceMissingSVN   = errors.New("reference doesn't have SVN")
-	ErrEvidenceMissingSVN    = errors.New("evidence doesn't have SVN")
+	ErrNoARK                  = errors.New("missing ARK certificate in evidence")
+	ErrNoASK                  = errors.New("missing ASK certificate in evidence")
+	ErrNoVEK                  = errors.New("evidence must supply VLEK or VCEK")
+	ErrNoVCEK                 = errors.New("VCEK is missing")
+	ErrNoVLEK                 = errors.New("VLEK is missing")
+	ErrTAMismatch             = errors.New("evidence Trust Anchor (ARK) doesn't match the provisioned one")
+	ErrNoProvisionedTA        = errors.New("missing provisioned Trust Anchor")
+	ErrNoProvisionedRV        = errors.New("reference value unavailable for attester")
+	ErrBadSigningKey          = errors.New("bad signing key in attestation report")
+	ErrMismatchedReportedTCB  = errors.New("reported TCB in evidence doesn't match reference")
+	ErrReferenceMissingSVN    = errors.New("reference doesn't have SVN")
+	ErrEvidenceMissingSVN     = errors.New("evidence doesn't have SVN")
+	ErrRootCertPoolAddFailure = errors.New("failed to add root certificate to pool")
+	ErrUnknownTdxQuoteVersion = errors.New("unknown TDX quote version")
 )
 
 const (
@@ -152,104 +156,55 @@ func extractProvisionedTA(trustAnchors []string) (*comid.CryptoKey, error) {
 	return provisionedArk, nil
 }
 
-func validateCertificateChain(certChain *sevsnp.CertificateChain) error {
-	if len(certChain.GetArkCert()) == 0 {
-		return handler.BadEvidence(ErrNoARK)
+func getTrustedCertPool(rootCert *comid.CryptoKey) (*x509.CertPool, error) {
+	rootCertPem := rootCert.String()
+	certPool := x509.NewCertPool()
+	ok := certPool.AppendCertsFromPEM([]byte(rootCertPem))
+	if !ok {
+		return nil, ErrRootCertPoolAddFailure
 	}
-
-	if len(certChain.GetAskCert()) == 0 {
-		return handler.BadEvidence(ErrNoASK)
-	}
-
-	if len(certChain.GetVcekCert()) == 0 && len(certChain.GetVlekCert()) == 0 {
-		return handler.BadEvidence(ErrNoVEK)
-	}
-
-	return nil
+	return certPool, nil
 }
 
-func validateTA(certChain *sevsnp.CertificateChain, provisionedArk *comid.CryptoKey) error {
-	if !bytes.Equal(certChain.GetArkCert(), []byte(provisionedArk.String())) {
-		return handler.BadEvidence(ErrTAMismatch)
+func validateQuoteIntegrity(tsm *tokens.TSMReport, trustedRoots *x509.CertPool) error {
+	tdxVerifyOptions := &tdxVerify.Options{
+		GetCollateral:    false,
+		Getter:           tdxVerifyTrust.DefaultHTTPSGetter(),
+		Now:              time.Now(),
+		CheckRevocations: false,
+		TrustedRoots:     trustedRoots,
 	}
 
-	return nil
-}
-
-func validateReportIntegrity(tsm *tokens.TSMReport, certChain *sevsnp.CertificateChain) error {
-	var (
-		ark, ask, vcek, vlek []byte
-		attestation          sevsnp.Attestation
-	)
-
-	// options: options to use when verifying SEV-SNP evidence
-	//          not feasible to enable certificate fetching and
-	//          checking revocations as AMD KDS rate-limits requests
-	options := verify.Options{
-		Getter:              trust.DefaultHTTPSGetter(),
-		Now:                 time.Now(),
-		DisableCertFetching: true,
-		CheckRevocations:    false,
-	}
-
-	protoReport, err := abi.ReportToProto(tsm.OutBlob)
-	if err != nil {
-		return err
-	}
-	attestation.Report = protoReport
-
-	if ark, err = readCert(certChain.GetArkCert()); err != nil {
-		return fmt.Errorf("can't read ARK to validate cert chain: %w", err)
-	}
-
-	if ask, err = readCert(certChain.GetAskCert()); err != nil {
-		return fmt.Errorf("can't read ASK to validate cert chain: %w", err)
-	}
-
-	signerInfo, err := abi.ParseSignerInfo(protoReport.GetSignerInfo())
+	quoteProto, err := tdxAbi.QuoteToProto(tsm.OutBlob)
 	if err != nil {
 		return err
 	}
 
-	switch signerInfo.SigningKey {
-	case ReportSigningKeyVlek:
-		if len(certChain.GetVlekCert()) == 0 {
-			return ErrNoVLEK
-		}
-		if vlek, err = readCert(certChain.GetVlekCert()); err != nil {
-			return fmt.Errorf("can't read VLEK to validate cert chain: %w", err)
-		}
-		attestation.CertificateChain = &sevsnp.CertificateChain{VlekCert: vlek, AskCert: ask, ArkCert: ark}
-	case ReportSigningKeyVcek:
-		if len(certChain.GetVcekCert()) == 0 {
-			return ErrNoVCEK
-		}
-		if vcek, err = readCert(certChain.GetVcekCert()); err != nil {
-			return fmt.Errorf("can't read VCEK to validate cert chain: %w", err)
-		}
-		attestation.CertificateChain = &sevsnp.CertificateChain{VcekCert: vcek, AskCert: ask, ArkCert: ark}
-	default:
-		return ErrBadSigningKey
-	}
-
-	err = verify.SnpAttestation(&attestation, &options)
+	err = tdxVerify.TdxQuote(quoteProto, tdxVerifyOptions)
 	if err != nil {
-		return handler.BadEvidence(err)
+		return err
 	}
 
 	return nil
 }
 
 func validateSessionNonce(tsm *tokens.TSMReport, sessionNonce []byte) error {
-	reportProto, err := abi.ReportToProto(tsm.OutBlob)
+	var quoteNonce []byte
+
+	quoteProto, err := tdxAbi.QuoteToProto(tsm.OutBlob)
 	if err != nil {
 		return err
 	}
 
-	evNonce := reportProto.GetReportData()
+	switch q := quoteProto.(type) {
+	case *tdxProto.QuoteV4:
+		quoteNonce = q.GetTdQuoteBody().GetReportData()
+	default:
+		return ErrUnknownTdxQuoteVersion
+	}
 
-	if !bytes.Equal(evNonce, sessionNonce) {
-		return handler.BadEvidence(fmt.Errorf("nonce in the evidence doesn't match the session nonce. evidence: 0x%x vs session: 0x%x", evNonce, sessionNonce))
+	if !bytes.Equal(quoteNonce, sessionNonce) {
+		return handler.BadEvidence(fmt.Errorf("nonce in the evidence doesn't match the session nonce. evidence: 0x%x vs session: 0x%x", quoteNonce, sessionNonce))
 	}
 
 	return nil
@@ -265,29 +220,21 @@ func (o EvidenceHandler) ValidateEvidenceIntegrity(
 	_ []string,
 ) error {
 	var (
-		tsm            *tokens.TSMReport
-		provisionedArk *comid.CryptoKey
-		certChain      *sevsnp.CertificateChain
-		err            error
+		tsm                 *tokens.TSMReport
+		provisionedRootCert *comid.CryptoKey
+		certPool            *x509.CertPool
+		err                 error
 	)
 
 	if tsm, err = parseAttestationToken(token); err != nil {
 		return err
 	}
 
-	if provisionedArk, err = extractProvisionedTA(trustAnchors); err != nil {
+	if provisionedRootCert, err = extractProvisionedTA(trustAnchors); err != nil {
 		return err
 	}
 
-	if certChain, err = parseCertificateChainFromEvidence(tsm); err != nil {
-		return err
-	}
-
-	if err := validateCertificateChain(certChain); err != nil {
-		return err
-	}
-
-	if err := validateTA(certChain, provisionedArk); err != nil {
+	if certPool, err = getTrustedCertPool(provisionedRootCert); err != nil {
 		return err
 	}
 
@@ -295,7 +242,7 @@ func (o EvidenceHandler) ValidateEvidenceIntegrity(
 		return err
 	}
 
-	return validateReportIntegrity(tsm, certChain)
+	return validateQuoteIntegrity(tsm, certPool)
 }
 
 // refvalToComidTriple converts extracted reference values to CoMID value triple

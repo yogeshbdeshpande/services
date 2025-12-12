@@ -12,9 +12,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
-	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/veraison/cmw"
 	"github.com/veraison/corim/comid"
 	"github.com/veraison/corim/corim"
@@ -80,20 +78,6 @@ func comidFromJson(buf []byte) (*comid.Comid, error) {
 	return extractedComid, nil
 }
 
-func parseCertificateChainFromEvidence(tsm *tokens.TSMReport) (*sevsnp.CertificateChain, error) {
-	var certTable abi.CertTable
-
-	if len(tsm.AuxBlob) == 0 {
-		return nil, ErrMissingCertChain
-	}
-
-	if err := certTable.Unmarshal(tsm.AuxBlob); err != nil {
-		return nil, err
-	}
-
-	return certTable.Proto(), nil
-}
-
 func readCert(cert []byte) ([]byte, error) {
 	if len(cert) == 0 {
 		return nil, errors.New("empty certificate")
@@ -141,7 +125,7 @@ func parseAttestationToken(token *proto.AttestationToken) (*tokens.TSMReport, er
 		if err != nil {
 			return nil, err
 		}
-		
+
 		err = cmwCollection.UnmarshalJSON(cmwJson)
 		if err != nil {
 			return nil, err
