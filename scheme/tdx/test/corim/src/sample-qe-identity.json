@@ -1,0 +1,25 @@
+{
+    "enclaveIdentity": {
+        "id": "TD_QE",
+        "version": 2,
+        "issueDate": "2025-12-15T16:28:20Z",
+        "nextUpdate": "2026-01-14T16:28:20Z",
+        "tcbEvaluationDataNumber": 18,
+        "miscselect": "00000000",
+        "miscselectMask": "FFFFFFFF",
+        "attributes": "11000000000000000000000000000000",
+        "attributesMask": "FBFFFFFFFFFFFFFF0000000000000000",
+        "mrsigner": "DC9E2A7C6F948F17474E34A7FC43ED030F7C1563F1BABDDF6340C82E0E54A8C5",
+        "isvprodid": 2,
+        "tcbLevels": [
+            {
+                "tcb": {
+                    "isvsvn": 4
+                },
+                "tcbDate": "2024-11-13T00:00:00Z",
+                "tcbStatus": "UpToDate"
+            }
+        ]
+    },
+    "signature": "4da7167deb6ec7b9ecf5c4bfcc877925339e06f68bfc34b7b28ab0dbc6b2172d3571ba37fdee6ec83835211a68cf7ecb2e63ae2b9aed492f78befdc0a88f5587"
+}
