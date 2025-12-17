@@ -62,8 +62,32 @@ func (o EvidenceHandler) GetSupportedMediaTypes() []string {
 }
 
 func transformEvidenceToCorim(token *proto.AttestationToken) (*corim.UnsignedCorim, error) {
-	// TO DO Complete this
-	return nil, nil
+	tsm, err := parseAttestationToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	reportProto, err := abi.QuoteToProto(tsm.OutBlob)
+	if err != nil {
+		return nil, err
+	}
+
+	evComid, err := reportToCoMID(reportProto)
+	if err != nil {
+		return nil, err
+	}
+
+	err = evComid.Valid()
+	if err != nil {
+		return nil, err
+	}
+
+	evCorim := corim.UnsignedCorim{}
+	evCorim.SetProfile(EndorsementMediaType)
+	evCorim.AddComid(evComid)
+
+	return &evCorim, nil
+
 }
 
 // ExtractClaims converts evidence in tsm-report format to our

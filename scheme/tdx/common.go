@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 
+	pb "github.com/google/go-tdx-guest/proto/tdx"
+	"github.com/google/uuid"
 	"github.com/veraison/cmw"
 	"github.com/veraison/corim/comid"
 	"github.com/veraison/corim/corim"
@@ -122,3 +124,83 @@ func parseAttestationToken(token *proto.AttestationToken) (*tokens.TSMReport, er
 
 	return tsm, nil
 }
+
+// reportToCoMID takes a tdReport and converts the same into a CoMID
+func reportToCoMID(reportproto any) (*comid.Comid, error) {
+	refValComid := comid.NewComid().
+		SetLanguage("en-GB").
+		SetTagIdentity(uuid.New(), 0)
+
+	if reportproto == nil {
+		return nil, errors.New("no report included")
+	}
+
+	reportV4 := reportproto.(*pb.QuoteV4)
+	refValTriple, err := translateTdxPlatformToCoMIDTriple(reportV4, refValComid)
+	if err != nil {
+		return nil, fmt.Errorf("unable to extract Tdx platform from quote: %w", err)
+	}
+	refValComid.AddReferenceValue(refValTriple)
+
+	refValTriple, err = translateQEReportToCoMIDTriple(reportV4, refValComid)
+	if err != nil {
+		return nil, fmt.Errorf("unable to extract qe report from quote: %w", err)
+	}
+	refValComid.AddReferenceValue(refValTriple)
+
+	refValTriple, err = translateTDReportToCoMIDTriple(reportV4, refValComid)
+	if err != nil {
+		return nil, fmt.Errorf("unable to extract qe report from quote: %w", err)
+	}
+	refValComid.AddReferenceValue(refValTriple)
+
+	return refValComid, nil
+}
+
+func translateTdxPlatformToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.ValueTriple, error) {
+	if quote == nil {
+		return nil, errors.New("no quote supplied")
+	}
+	if m == nil {
+		return nil, errors.New("no comid supplied")
+	}
+
+	// Extract TEE_TCB_SVN from the Quote
+	// Extract MRSEAM from the Quote
+	// Extract SEAMATTRIBUTES from the Quote
+
+	return nil, nil
+}
+
+func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.ValueTriple, error) {
+	if quote == nil {
+		return nil, errors.New("no quote supplied")
+	}
+	if m == nil {
+		return nil, errors.New("no comid supplied")
+	}
+
+	return nil, nil
+}
+
+func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.ValueTriple, error) {
+	// Get QEReportCertificationData
+
+	// Using the QEReportCertificationData variable call the method GetQeReport()
+	// var qe tdx.EnclaveReport
+	// Extract MrEnclave from the QE_Report
+	// Extract MISC-SELECT from the QE-Report
+	// Extract ISV ProdID from the QE-Report
+	// Get the QE Vendor ID from Quote Header : It must be: 33729a93-9cf7-a94c-940a-0db3957f0607
+	return nil, nil
+}
+
+/*
+func translatePCEToCoMIDTriple(token *proto.AttestationToken) (*comid.ValueTriple, error) {
+
+	return nil, nil
+
+}
+For now there will no be any PCE Report, but everything is folded to TdxPlatform Report
+*
+*/
