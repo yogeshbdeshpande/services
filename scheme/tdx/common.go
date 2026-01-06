@@ -164,10 +164,11 @@ func translateTdxPlatformToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comi
 	if m == nil {
 		return nil, errors.New("no comid supplied")
 	}
-
-	// Extract TEE_TCB_SVN from the Quote
-	// Extract MRSEAM from the Quote
-	// Extract SEAMATTRIBUTES from the Quote
+	qb := quote.GetTdQuoteBody()
+	// Extract TEE_TCB_SVN, MRSEAM and SEAMATTRIBUTES from the Quote
+	teeTcbSvn := qb.TeeTcbSvn
+	mrSeam := qb.MrSeam
+	seamAttr := qb.SeamAttributes
 
 	return nil, nil
 }
@@ -179,19 +180,50 @@ func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	if m == nil {
 		return nil, errors.New("no comid supplied")
 	}
+	// Verify the values assigned by the creator of the TD are as expected: MROWNER and MROWNERCONFIG
+	// Verify the software assigned ID MRCONFIGID
+	// Verify the measurement of the initial contents of the TD: MRTD
+	// Verify TDATTRIBUTES
+	// Verify kernel measurements provided in RTMR[0] and RTMR[1]
+	// By convention, RTMR[0] and RTMR[1] are updated by the TD virtual firmware/BIOS (TDVF).
+	// The measurements and the log file may differ depending on the TDVF vendor.
+	// For more information on the measurements in RTMR[0] and RTMR[1], contact your TDVF vendor.
+	// Verify any expected runtime generated measurements in RTMR[2] and RTMR[3]
 
 	return nil, nil
 }
 
 func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.ValueTriple, error) {
+	sd := quote.GetSignedData()
+	if sd == nil {
+		return nil, errors.New("signed Data is nil")
+	}
+	cd := sd.GetCertificationData()
+	if cd == nil {
+		return nil, errors.New("certification data is nil")
+	}
+	qc := cd.GetQeReportCertificationData()
+	if qc == nil {
+		return nil, errors.New("qe report certification data is nil")
+	}
+	rep := qc.GetQeReport()
+	if rep == nil {
+		return nil, errors.New("enclave report is nil")
+	}
 	// Get QEReportCertificationData
+	mrEnclave := rep.GetMrEnclave()
+	miscSelect := rep.GetMiscSelect()
+	isvsvn := rep.GetIsvSvn()
+	cpusvn = rep.GetCpuSvn()
 
+	rep.GetAttributes()
 	// Using the QEReportCertificationData variable call the method GetQeReport()
 	// var qe tdx.EnclaveReport
 	// Extract MrEnclave from the QE_Report
 	// Extract MISC-SELECT from the QE-Report
 	// Extract ISV ProdID from the QE-Report
 	// Get the QE Vendor ID from Quote Header : It must be: 33729a93-9cf7-a94c-940a-0db3957f0607
+	// Set the Vendor ID as Environment for Enclave Report
 	return nil, nil
 }
 
