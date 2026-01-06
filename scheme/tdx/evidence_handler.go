@@ -173,12 +173,11 @@ func validateSessionNonce(tsm *tokens.TSMReport, sessionNonce []byte) error {
 		return err
 	}
 	reportV4 := reportProto.(*pb.QuoteV4)
-	certdata := reportV4.GetSignedData().GetCertificationData()
-	qedata := certdata.GetQeReportCertificationData()
-	if qedata.QeReport != nil {
-		evNonce = qedata.QeReport.ReportData
+	rep, err := getQEReportFromQuote(reportV4)
+	if err != nil {
+		return err
 	}
-
+	evNonce = rep.GetReportData()
 	if !bytes.Equal(evNonce, sessionNonce) {
 		return handler.BadEvidence(fmt.Errorf("nonce in the evidence doesn't match the session nonce. evidence: 0x%x vs session: 0x%x", evNonce, sessionNonce))
 	}

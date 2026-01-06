@@ -194,21 +194,9 @@ func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 }
 
 func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.ValueTriple, error) {
-	sd := quote.GetSignedData()
-	if sd == nil {
-		return nil, errors.New("signed Data is nil")
-	}
-	cd := sd.GetCertificationData()
-	if cd == nil {
-		return nil, errors.New("certification data is nil")
-	}
-	qc := cd.GetQeReportCertificationData()
-	if qc == nil {
-		return nil, errors.New("qe report certification data is nil")
-	}
-	rep := qc.GetQeReport()
-	if rep == nil {
-		return nil, errors.New("enclave report is nil")
+	rep, err := getQEReportFromQuote(quote)
+	if err != nil {
+		return nil, err
 	}
 	// Get QEReportCertificationData
 	mrEnclave := rep.GetMrEnclave()
@@ -236,3 +224,23 @@ func translatePCEToCoMIDTriple(token *proto.AttestationToken) (*comid.ValueTripl
 For now there will no be any PCE Report, but everything is folded to TdxPlatform Report
 *
 */
+
+func getQEReportFromQuote(quote *pb.QuoteV4) (*pb.EnclaveReport, error) {
+	sd := quote.GetSignedData()
+	if sd == nil {
+		return nil, errors.New("signed Data is nil")
+	}
+	cd := sd.GetCertificationData()
+	if cd == nil {
+		return nil, errors.New("certification data is nil")
+	}
+	qc := cd.GetQeReportCertificationData()
+	if qc == nil {
+		return nil, errors.New("qe report certification data is nil")
+	}
+	rep := qc.GetQeReport()
+	if rep == nil {
+		return nil, errors.New("enclave report is nil")
+	}
+	return rep, nil
+}
