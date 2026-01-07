@@ -13,9 +13,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/veraison/cmw"
 	"github.com/veraison/corim/comid"
+	"github.com/veraison/corim/comid/tdx"
 	"github.com/veraison/corim/corim"
+	"github.com/veraison/corim/extensions"
 	"github.com/veraison/ratsd/tokens"
+	"github.com/veraison/services/log"
 	"github.com/veraison/services/proto"
+	"github.com/veraison/swid"
 )
 
 // comidFromJson accepts a CoRIM in JSON format and returns its first CoMID
@@ -165,10 +169,63 @@ func translateTdxPlatformToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comi
 		return nil, errors.New("no comid supplied")
 	}
 	qb := quote.GetTdQuoteBody()
+
+	env := comid.Environment{}
+	measurement := &comid.Measurement{}
+	env.Class = comid.NewClassBytes(qb.MrSeam)
+	meas := comid.NewMeasurements()
+	refVal := &comid.ValueTriple{
+		Environment:  env,
+		Measurements: *meas,
+	}
+
+	extMap := extensions.NewMap().Add(comid.ExtMval, &tdx.MValExtensions{})
+
+	if err := measurement.Val.RegisterExtensions(extMap); err != nil {
+		log.Fatal("could not register mval extensions")
+	}
+
+	// Set the Extensions now, here!!
+	val := &measurement.Val
+
 	// Extract TEE_TCB_SVN, MRSEAM and SEAMATTRIBUTES from the Quote
-	teeTcbSvn := qb.TeeTcbSvn
-	mrSeam := qb.MrSeam
+	svns := covertTeeTcbSvnToUintSvns(qb.TeeTcbSvn)
+	c, err := tdx.NewTeeTcbCompSvnUint(svns)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get TeeTcbCompSvn: %w", err)
+	}
+	err = val.Set("tcbcompsvn", c)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set teetcbcompsvn: %w", err)
+	}
+
+	if len(qb.MrSeam) != 48 {
+		return nil, fmt.Errorf("invalid len %d for MrSeam", len(qb.MrSeam))
+	}
+	dTee := comid.NewDigests()
+	dTee.AddDigest(swid.Sha384, qb.MrSeam)
+	ts, err := tdx.NewTeeDigest(*dTee)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get TeeDigest: %w", err)
+	}
+	err = val.Set("mrtee", ts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set mrtee %w", err)
+	}
+
 	seamAttr := qb.SeamAttributes
+
+	teeAttr, err := tdx.NewTeeAttributes(seamAttr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get teeAttributes: %w", err)
+	}
+	err = val.Set("attributes", teeAttr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set attributes: %w", err)
+	}
+
+	refVal.Measurements.Add(measurement)
+	m.Triples.AddReferenceValue(refVal)
 
 	return nil, nil
 }
@@ -180,6 +237,42 @@ func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	if m == nil {
 		return nil, errors.New("no comid supplied")
 	}
+	qb := quote.GetTdQuoteBody()
+
+	env := comid.Environment{}
+	measurement := &comid.Measurement{}
+	mrtd := qb.MrTd
+	env.Class = comid.NewClassBytes(mrtd)
+	meas := comid.NewMeasurements()
+	refVal := &comid.ValueTriple{
+		Environment:  env,
+		Measurements: *meas,
+	}
+
+	extMap := extensions.NewMap().Add(comid.ExtMval, &tdx.MValExtensions{})
+
+	if err := measurement.Val.RegisterExtensions(extMap); err != nil {
+		log.Fatal("could not register mval extensions")
+	}
+
+	// Set the Extensions now, here!!
+	val := &measurement.Val
+	if len(mrtd) != 48 {
+		return nil, fmt.Errorf("invalid len %d for MrTd", len(mrtd))
+	}
+	dTee := comid.NewDigests()
+	dTee.AddDigest(swid.Sha384, mrtd)
+	ts, err := tdx.NewTeeDigest(*dTee)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get TeeDigest: %w", err)
+	}
+	err = val.Set("mrtee", ts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set mrtee %w", err)
+	}
+
+	refVal.Measurements.Add(measurement)
+	m.Triples.AddReferenceValue(refVal)
 	// Verify the values assigned by the creator of the TD are as expected: MROWNER and MROWNERCONFIG
 	// Verify the software assigned ID MRCONFIGID
 	// Verify the measurement of the initial contents of the TD: MRTD
@@ -205,6 +298,9 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	cpusvn = rep.GetCpuSvn()
 
 	rep.GetAttributes()
+	env := comid.Environment{}
+	env.Class = comid.NewClassBytes(mrEnclave)
+
 	// Using the QEReportCertificationData variable call the method GetQeReport()
 	// var qe tdx.EnclaveReport
 	// Extract MrEnclave from the QE_Report
@@ -243,4 +339,13 @@ func getQEReportFromQuote(quote *pb.QuoteV4) (*pb.EnclaveReport, error) {
 		return nil, errors.New("enclave report is nil")
 	}
 	return rep, nil
+}
+
+func covertTeeTcbSvnToUintSvns(tcbsvn []byte) []uint {
+	var svns []uint
+	svns = make([]uint, len(tcbsvn))
+	for i, svn := range tcbsvn {
+		svns[i] = uint(svn)
+	}
+	return svns
 }
