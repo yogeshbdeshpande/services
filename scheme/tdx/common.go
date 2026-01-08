@@ -5,6 +5,7 @@ package tdx
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -227,7 +228,7 @@ func translateTdxPlatformToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comi
 	refVal.Measurements.Add(measurement)
 	m.Triples.AddReferenceValue(refVal)
 
-	return nil, nil
+	return refVal, nil
 }
 
 func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.ValueTriple, error) {
@@ -271,7 +272,68 @@ func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 		return nil, fmt.Errorf("unable to set mrtee %w", err)
 	}
 
+	// Set XFAM as RawValue
+	var mask []byte
+	xfam := qb.GetXfam()
+	measurement.SetRawValueBytes(xfam, mask)
+
+	// Set TD Attributes
+	tdAttr := qb.TdAttributes
+	teeAttr, err := tdx.NewTeeAttributes(tdAttr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get td attributes: %w", err)
+	}
+	err = val.Set("attributes", teeAttr)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set td attributes: %w", err)
+	}
+
 	refVal.Measurements.Add(measurement)
+	rtmrs := qb.GetRtmrs()
+
+	for index, rtmr := range rtmrs {
+		if len(rtmr) != 48 {
+			return nil, fmt.Errorf("invalid length %d for rtmr at index %d", len(rtmr), index)
+		}
+		switch index {
+		case 0:
+			/* MKey 0: RTMR0 */
+			m0, err := comid.NewMeasurement("RTMR0", comid.StringType)
+			if err != nil {
+				return nil, err
+			}
+			m0.AddDigest(swid.Sha384, rtmr)
+			// Set RTMR0 Digest here
+			refVal.Measurements.Add(m0)
+		case 1:
+			/* MKey 1: RTMR1 */
+			m1, err := comid.NewMeasurement("RTMR1", comid.StringType)
+			if err != nil {
+				return nil, err
+			}
+			m1.AddDigest(swid.Sha384, rtmr)
+			refVal.Measurements.Add(m1)
+		case 2:
+			/* MKey 2: RTMR2 */
+			m2, err := comid.NewMeasurement("RTMR2", comid.StringType)
+			if err != nil {
+				return nil, err
+			}
+			m2.AddDigest(swid.Sha384, rtmr)
+			refVal.Measurements.Add(m2)
+		case 3:
+			/* MKey 3: RTMR3 */
+			m3, err := comid.NewMeasurement("RTMR3", comid.StringType)
+			if err != nil {
+				return nil, err
+			}
+			m3.AddDigest(swid.Sha384, rtmr)
+			refVal.Measurements.Add(m3)
+		default:
+			return nil, errors.New("rtmrs cannot be more than 4")
+		}
+	}
+
 	m.Triples.AddReferenceValue(refVal)
 	// Verify the values assigned by the creator of the TD are as expected: MROWNER and MROWNERCONFIG
 	// Verify the software assigned ID MRCONFIGID
@@ -283,7 +345,7 @@ func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	// For more information on the measurements in RTMR[0] and RTMR[1], contact your TDVF vendor.
 	// Verify any expected runtime generated measurements in RTMR[2] and RTMR[3]
 
-	return nil, nil
+	return refVal, nil
 }
 
 func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.ValueTriple, error) {
@@ -292,15 +354,77 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 		return nil, err
 	}
 	// Get QEReportCertificationData
-	mrEnclave := rep.GetMrEnclave()
-	miscSelect := rep.GetMiscSelect()
-	isvsvn := rep.GetIsvSvn()
-	cpusvn = rep.GetCpuSvn()
+	mrEnclave := rep.GetMrEnclave()   // This is important
+	miscSelect := rep.GetMiscSelect() // This is important
+	isvsvn := rep.GetIsvSvn()         // This is important
 
-	rep.GetAttributes()
+	// Get Enclave Report ID - ISVProdID
+	pid := rep.GetIsvProdId()
+
+	// Get QE Vendor ID from Quote Header..
 	env := comid.Environment{}
-	env.Class = comid.NewClassBytes(mrEnclave)
+	measurement := &comid.Measurement{}
 
+	env.Class = comid.NewClassBytes(mrEnclave)
+	meas := comid.NewMeasurements()
+	refVal := &comid.ValueTriple{
+		Environment:  env,
+		Measurements: *meas,
+	}
+
+	extMap := extensions.NewMap().Add(comid.ExtMval, &tdx.MValExtensions{})
+	if err := measurement.Val.RegisterExtensions(extMap); err != nil {
+		log.Fatal("could not register mval extensions")
+	}
+	// Set the Extensions now, here!!
+	val := &measurement.Val
+
+	if len(mrEnclave) != 32 {
+		return nil, fmt.Errorf("invalid len %d for mrEnclave", len(mrEnclave))
+	}
+
+	dE := comid.NewDigests()
+	dE.AddDigest(swid.Sha256, mrEnclave)
+	ts, err := tdx.NewTeeDigest(*dE)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get TeeDigest: %w", err)
+	}
+	err = val.Set("mrtee", ts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set mrtee %w", err)
+	}
+
+	// Set the MISC_SELECT
+	ms := make([]byte, 4)
+	binary.BigEndian.PutUint32(ms, miscSelect)
+	msel := tdx.NewTeeMiscSelect(ms)
+	err = val.Set("miscselect", msel)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set miscselect: %w", err)
+	}
+
+	//TO DO, support base uint32 type in ISVProdID in tdx package
+	isvprodID, err := tdx.NewTeeISVProdID(uint(pid))
+	if err != nil {
+		return nil, fmt.Errorf("unable to get isvprodID: %w", err)
+	}
+
+	err = val.Set("isvprodid", isvprodID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set isvprodid: %w", err)
+	}
+
+	svn, err := tdx.NewSvnUint(uint(isvsvn))
+	if err != nil {
+		return nil, fmt.Errorf("unable to get isvsvn uint: %w", err)
+	}
+
+	err = val.Set("isvsvn", svn)
+	if err != nil {
+		return nil, fmt.Errorf("unable to set isvsvn: %w", err)
+	}
+	refVal.Measurements.Add(measurement)
+	m.Triples.AddReferenceValue(refVal)
 	// Using the QEReportCertificationData variable call the method GetQeReport()
 	// var qe tdx.EnclaveReport
 	// Extract MrEnclave from the QE_Report
@@ -308,18 +432,8 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	// Extract ISV ProdID from the QE-Report
 	// Get the QE Vendor ID from Quote Header : It must be: 33729a93-9cf7-a94c-940a-0db3957f0607
 	// Set the Vendor ID as Environment for Enclave Report
-	return nil, nil
+	return refVal, nil
 }
-
-/*
-func translatePCEToCoMIDTriple(token *proto.AttestationToken) (*comid.ValueTriple, error) {
-
-	return nil, nil
-
-}
-For now there will no be any PCE Report, but everything is folded to TdxPlatform Report
-*
-*/
 
 func getQEReportFromQuote(quote *pb.QuoteV4) (*pb.EnclaveReport, error) {
 	sd := quote.GetSignedData()
