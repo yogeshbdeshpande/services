@@ -353,6 +353,9 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	if err != nil {
 		return nil, err
 	}
+	header := quote.Header
+	vendorID := header.GetQeVendorId()
+
 	// Get QEReportCertificationData
 	mrEnclave := rep.GetMrEnclave()   // This is important
 	miscSelect := rep.GetMiscSelect() // This is important
@@ -370,6 +373,13 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	refVal := &comid.ValueTriple{
 		Environment:  env,
 		Measurements: *meas,
+	}
+
+	vid := tdx.ParseUUID(string(vendorID))
+	// First Add QE VendorID as UUID
+	measurement = measurement.SetUUID(vid)
+	if measurement == nil {
+		return nil, fmt.Errorf("invalud UUID received in the Quote Header %x", vendorID)
 	}
 
 	extMap := extensions.NewMap().Add(comid.ExtMval, &tdx.MValExtensions{})
