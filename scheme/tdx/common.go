@@ -14,9 +14,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/veraison/cmw"
 	"github.com/veraison/corim/comid"
-	"github.com/veraison/corim/comid/tdx"
 	"github.com/veraison/corim/corim"
 	"github.com/veraison/corim/extensions"
+	"github.com/veraison/corim/profiles/tdx"
 	"github.com/veraison/ratsd/tokens"
 	"github.com/veraison/services/log"
 	"github.com/veraison/services/proto"
@@ -375,11 +375,15 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 		Measurements: *meas,
 	}
 
-	vid := tdx.ParseUUID(string(vendorID))
+	//  Vendor ID must be a UUID
+	vid, err := comid.ParseUUID(string(vendorID))
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse uuid: %w", err)
+	}
 	// First Add QE VendorID as UUID
 	measurement = measurement.SetUUID(vid)
 	if measurement == nil {
-		return nil, fmt.Errorf("invalud UUID received in the Quote Header %x", vendorID)
+		return nil, fmt.Errorf("invalid UUID received in the Quote Header %x", vendorID)
 	}
 
 	extMap := extensions.NewMap().Add(comid.ExtMval, &tdx.MValExtensions{})
@@ -407,7 +411,11 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 	// Set the MISC_SELECT
 	ms := make([]byte, 4)
 	binary.BigEndian.PutUint32(ms, miscSelect)
-	msel := tdx.NewTeeMiscSelect(ms)
+	msel, err := tdx.NewTeeMiscSelect(ms)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get new miscselect: %w", err)
+	}
+
 	err = val.Set("miscselect", msel)
 	if err != nil {
 		return nil, fmt.Errorf("unable to set miscselect: %w", err)

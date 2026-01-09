@@ -158,7 +158,7 @@ require (
 	github.com/google/go-sev-guest v0.14.1
 	github.com/google/go-tdx-guest v0.3.1
 	github.com/jraman567/go-gen-ref v1.2.3
-	github.com/veraison/corim v1.1.3-0.20251205175433-99209e64fc22
+	github.com/veraison/corim v1.1.3-0.20251219105225-77488c5b58ee
 	github.com/veraison/ratsd v0.0.0-20251002182229-94bebd610d15
 )
 
