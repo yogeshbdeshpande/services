@@ -197,29 +197,7 @@ func (o EvidenceHandler) ValidateEvidenceIntegrity(
 	// TO DO We need correct Options, else the RawTdxQuote API will Fail
 	var opts validate.Options
 	var opt verify.Options
-	/*
-		opts :=
-		&Options{
-					HeaderOptions: HeaderOptions{
-						MinimumQeSvn:  qeSvn,
-						MinimumPceSvn: pceSvn,
-						QeVendorID:    qeVendorID,
-					},
-					TdQuoteBodyOptions: TdQuoteBodyOptions{
-						MinimumTeeTcbSvn:   teeTcbSvn,
-						MrSeam:             mrSeam,
-						TdAttributes:       tdAttributes,
-						Xfam:               xfam,
-						MrTd:               mrTd,
-						MrConfigID:         mrConfigID,
-						MrOwner:            mrOwner,
-						MrOwnerConfig:      mrOwnerConfig,
-						Rtmrs:              [][]byte{rtmr0, rtmr1, rtmr2, rtmr3},
-						ReportData:         reportData,
-						EnableTdDebugCheck: true,
-					},
-				},
-	*/
+
 	// First Obtain Bytes of TDX Quote in Raw Format, Check if we need any Tag Removal etc.
 	// Get Quote from the Attestation Token
 	rawQuote := token.Data

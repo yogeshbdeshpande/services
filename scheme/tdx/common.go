@@ -226,8 +226,6 @@ func translateTdxPlatformToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comi
 	}
 
 	refVal.Measurements.Add(measurement)
-	m.Triples.AddReferenceValue(refVal)
-
 	return refVal, nil
 }
 
@@ -334,7 +332,6 @@ func translateTDReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 		}
 	}
 
-	m.Triples.AddReferenceValue(refVal)
 	// Verify the values assigned by the creator of the TD are as expected: MROWNER and MROWNERCONFIG
 	// Verify the software assigned ID MRCONFIGID
 	// Verify the measurement of the initial contents of the TD: MRTD
@@ -442,7 +439,6 @@ func translateQEReportToCoMIDTriple(quote *pb.QuoteV4, m *comid.Comid) (*comid.V
 		return nil, fmt.Errorf("unable to set isvsvn: %w", err)
 	}
 	refVal.Measurements.Add(measurement)
-	m.Triples.AddReferenceValue(refVal)
 	// Using the QEReportCertificationData variable call the method GetQeReport()
 	// var qe tdx.EnclaveReport
 	// Extract MrEnclave from the QE_Report
