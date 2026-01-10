@@ -43,29 +43,32 @@ func (s StoreHandler) GetSupportedMediaTypes() []string {
 
 // getRefValKey helper to compute RefVal key from CoMID value triple
 func getRefValKey(rv comid.ValueTriple, tenantID string) (string, error) {
-	m, err := measurementByUintKey(rv, mKeyMeasurement)
-	if err != nil {
-		return "", err
+	var classID []byte
+	env := rv.Environment
+	if err := env.Valid(); err != nil {
+		return "", fmt.Errorf("invalid environment %w", err)
 	}
+	if env.Class != nil {
+		return "", errors.New("invalid class parameter")
 
-	if m == nil {
-		return "", ErrMissingMeasurement
 	}
-
-	d := m.Val.Digests
+	if err := env.Class.Valid(); err != nil {
+		return "", fmt.Errorf("invalid class %w", err)
+	}
+	classID = env.Class.ClassID.Bytes()
 
 	u := url.URL{
 		Scheme: SchemeName,
 		Host:   tenantID,
-		Path:   hex.EncodeToString((*d)[0].HashValue),
+		Path:   hex.EncodeToString(classID),
 	}
 
 	return u.String(), nil
 }
 
-// SynthKeysFromRefValue constructs SEV-SNP reference value of the form
-// "SEVSNP://<tenantID>/<measurement>". The measurement
-// is unique to an attester instance and, as such, is
+// SynthKeysFromRefValue constructs TDX reference value of the form
+// "TDX://<tenantID>/<classID>". The classID
+// is unique to an tagrte environment and, as such, is
 // the best candidate to use as the key.
 func (s StoreHandler) SynthKeysFromRefValue(
 	tenantID string,
@@ -86,14 +89,14 @@ func (s StoreHandler) SynthKeysFromRefValue(
 	return []string{refValKey}, nil
 }
 
-// SynthKeysFromTrustAnchor constructs the SEV-SNP Trust Anchor key. The
-// key format is "SEVSNP://<keyname>". For example, "SEV-SNP://ARK-Milan"
+// SynthKeysFromTrustAnchor constructs the TDX Trust Anchor key. The
+// key format is "TDX://<keyname>". For example, "TDX://Intel-RootKey"
 //
-// AMD's Root Key (ARK) is the only Trust Anchor for SEV-SNP.
+// Intel's Root Key (IRK) is the only Trust Anchor for TDX.
 //
 // The attester supplies all the keys in the certificate chain
 // for verification. During verification, the scheme must ensure that
-// the ARK in the evidence matches the provisioned Trust Anchor.
+// the IRK in the Evidence matches the provisioned Trust Anchor.
 func (s StoreHandler) SynthKeysFromTrustAnchor(_ string, ta *handler.Endorsement) ([]string, error) {
 	var avk comid.KeyTriple
 
@@ -139,17 +142,20 @@ func (s StoreHandler) GetTrustAnchorIDs(token *proto.AttestationToken) ([]string
 	return []string{u.String()}, nil
 }
 
-// GetRefValueIDs gets the refval key from the claims set. Looks up
-// "measurement" using its MKey (641) and construct the refval key.
+// GetRefValueIDs gets the refval keys from the claims set. Looks up
+// RefValue Triples associated with TDX CoMID and extracts the Keys
 //
-// Reference value key for SEV-SNP is of the form
-// "SEVSNP://<tenantID>/<measurement>", as explained
-// in SynthKeysFromRefValue.
+// Reference value key for TDX is of the form
+// "TDX://<tenantID>/<classID>", for each target envionment
+// For TDX there are three target environments
+// 1.TDX Seam Module 2. TDX Quoting Enclave 3. TD VM
 func (s StoreHandler) GetRefValueIDs(
 	tenantID string,
 	_ []string,
 	claims map[string]interface{},
 ) ([]string, error) {
+	var rvKeys []string
+
 	claimsJson, err := json.Marshal(claims)
 	if err != nil {
 		return nil, err
@@ -159,17 +165,25 @@ func (s StoreHandler) GetRefValueIDs(
 	if err != nil {
 		return nil, err
 	}
+	rvs := extractedComid.Triples.ReferenceValues
 
-	if len(extractedComid.Triples.ReferenceValues.Values) > 1 {
+	if len(extractedComid.Triples.ReferenceValues.Values) > 3 {
 		return nil, ErrUnsupportedMultipleEvidence
 	}
 
-	refValKey, err := getRefValKey(extractedComid.Triples.ReferenceValues.Values[0], tenantID)
+	for _, rv := range rvs.Values {
+		refValKey, err := getRefValKey(rv, tenantID)
+		if err != nil {
+			return nil, fmt.Errorf("getRefValKeyError %w", err)
+		}
+		rvKeys = append(rvKeys, refValKey)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	return []string{refValKey}, nil
+	return rvKeys, nil
 }
 
 func (s StoreHandler) SynthCoservQueryKeys(tenantID string, query string) ([]string, error) {
