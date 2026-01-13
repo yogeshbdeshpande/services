@@ -334,34 +334,54 @@ func (o EvidenceHandler) AppraiseEvidence(
 		err error
 	)
 
-	refVal, err := refvalToComidTriples(endorsementsStrings)
+	refVals, err := refvalToComidTriples(endorsementsStrings)
 	if err != nil {
 		return nil, err
 	}
 
-	evidence, err := evidenceToComidTriples(ec)
+	evTriples, err := evidenceToComidTriples(ec)
 	if err != nil {
 		return nil, err
 	}
 
-	result := handler.CreateAttestationResult(SchemeName)
+	schemeList := []string{"TDXSEAM", "Enclave", "TDVM"}
+	result := handler.CreateAttestationResult(schemeList[0])
+	for _, scheme := range schemeList {
+		verifier := getVerifier(scheme)
+		rv, err := getTripleforEnvironment(scheme, refVals)
+		if err != nil {
+			return nil, err
+		}
 
-	appraisal := result.Submods[SchemeName]
+		ev, err := getTripleforEnvironment(scheme, evTriples)
+		if err != nil {
+			return nil, err
+		}
 
-	// Init TrustVector to default values
-	appraisal.TrustVector.InstanceIdentity = ear.NoClaim
-	appraisal.TrustVector.Executables = ear.NoClaim
-	appraisal.TrustVector.Configuration = ear.NoClaim
-	appraisal.TrustVector.FileSystem = ear.NoClaim
-	appraisal.TrustVector.StorageOpaque = ear.NoClaim
-	appraisal.TrustVector.SourcedData = ear.NoClaim
-	appraisal.TrustVector.Hardware = ear.UnsafeHardwareClaim
-	appraisal.TrustVector.RuntimeOpaque = ear.VisibleMemoryRuntimeClaim
+		appraisal, err := Appraise(verifier, ev, rv)
+		if err != nil {
+			return nil, err
+		}
+		result.Submods[scheme] = appraisal
+	}
 
 	return result, err
 }
 
-func locateTripleUsingModel(model string, ref *comid.ValueTriples) (*comid.ValueTriple, error) {
+func getVerifier(model string) IVerifier {
+	switch model {
+	case "TDX_SEAM":
+		return &SeamVerifier{}
+	case "TDX_ENCLAVE":
+		return &EnclaveVerifier{}
+	case "TDX_VM":
+		return &TdVmVerifier{}
+	default:
+		return nil
+	}
+
+}
+func getTripleforEnvironment(model string, ref *comid.ValueTriples) (*comid.ValueTriple, error) {
 	if ref == nil {
 		return nil, errors.New("nil value triples")
 	}
@@ -391,4 +411,8 @@ func locateTripleUsingModel(model string, ref *comid.ValueTriples) (*comid.Value
 		}
 	}
 	return nil, fmt.Errorf("unable to get the correct triples")
+}
+
+func Appraise(verifier IVerifier, ev *comid.ValueTriple, refv *comid.ValueTriple) (*ear.Appraisal, error) {
+	return verifier.PerformAppraisal(ev, refv)
 }
