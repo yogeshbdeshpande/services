@@ -88,7 +88,7 @@ func getRefValKeyFromEndorsement(rv comid.ValueTriple, tenantID string) (string,
 		case swid.Sha256:
 			// MRENCLAVE HAS sha256
 			model := rv.Environment.Class.GetModel()
-			if strings.Contains(model, "QE") || strings.Contains(model, "Quoting Eclave") {
+			if strings.Contains(model, "QE") || strings.Contains(model, "Quoting Enclave") {
 				TeeDigest = digest.HashValue
 				break
 			}

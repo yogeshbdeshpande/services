@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/go-tdx-guest/abi"
 	pb "github.com/google/go-tdx-guest/proto/tdx"
@@ -213,12 +214,14 @@ func (o EvidenceHandler) ValidateEvidenceIntegrity(
 	return nil
 }
 
-// refvalToComidTriple converts extracted reference values to CoMID value triple
-func refvalToComidTriple(endorsementsStrings []string) (*comid.ValueTriple, error) {
+// refvalToComidTriple converts extracted reference values, in Endorsement Strings to
+// to CoMID value triples one per each Target Environment
+func refvalToComidTriples(endorsementsStrings []string) (*comid.ValueTriples, error) {
 	var (
 		refValEndorsement *handler.Endorsement
 		rv                comid.ValueTriple
 	)
+	refVals := comid.NewValueTriples()
 
 	for i, e := range endorsementsStrings {
 		var endorsement handler.Endorsement
@@ -229,24 +232,23 @@ func refvalToComidTriple(endorsementsStrings []string) (*comid.ValueTriple, erro
 
 		if endorsement.Type == handler.EndorsementType_REFERENCE_VALUE {
 			refValEndorsement = &endorsement
-			break
+			err := json.Unmarshal(refValEndorsement.Attributes, &rv)
+			if err != nil {
+				return nil, err
+			}
+			// Great we have extracted a Single RefVal Triple, lets add it to the list
+			refVals.Add(&rv)
 		}
 	}
 
-	if refValEndorsement == nil {
-		return nil, handler.BadEvidence(ErrNoProvisionedRV)
+	if len(refVals.Values) != 3 {
+		return nil, fmt.Errorf("expecting three RefVals, SEAM, Enclave and TD however got: %d", len(refVals.Values))
 	}
-
-	err := json.Unmarshal(refValEndorsement.Attributes, &rv)
-	if err != nil {
-		return nil, err
-	}
-
-	return &rv, nil
+	return refVals, nil
 }
 
-// evidenceToComidTriple converts claim set to CoMID value triple
-func evidenceToComidTriple(ec *proto.EvidenceContext) (*comid.ValueTriple, error) {
+// evidenceToComidTriples converts claim set to a seqeunce of ValueTriples
+func evidenceToComidTriples(ec *proto.EvidenceContext) (*comid.ValueTriples, error) {
 	evCorimJson, err := json.Marshal(ec.Evidence.AsMap())
 	if err != nil {
 		return nil, err
@@ -257,7 +259,7 @@ func evidenceToComidTriple(ec *proto.EvidenceContext) (*comid.ValueTriple, error
 		return nil, err
 	}
 
-	return &evComid.Triples.ReferenceValues.Values[0], nil
+	return evComid.Triples.ReferenceValues, nil
 }
 
 // compareMeasurements checks if two given comid.Measurement variables are equal.
@@ -329,16 +331,15 @@ func (o EvidenceHandler) AppraiseEvidence(
 	endorsementsStrings []string,
 ) (*ear.AttestationResult, error) {
 	var (
-		err         error
-		evidenceMap map[string]interface{}
+		err error
 	)
 
-	refVal, err := refvalToComidTriple(endorsementsStrings)
+	refVal, err := refvalToComidTriples(endorsementsStrings)
 	if err != nil {
 		return nil, err
 	}
 
-	evidence, err := evidenceToComidTriple(ec)
+	evidence, err := evidenceToComidTriples(ec)
 	if err != nil {
 		return nil, err
 	}
@@ -357,96 +358,37 @@ func (o EvidenceHandler) AppraiseEvidence(
 	appraisal.TrustVector.Hardware = ear.UnsafeHardwareClaim
 	appraisal.TrustVector.RuntimeOpaque = ear.VisibleMemoryRuntimeClaim
 
-claimsLoop:
-	for _, m := range refVal.Measurements.Values {
-		var (
-			k  uint64
-			em *comid.Measurement
-		)
+	return result, err
+}
 
-		k, err = m.Key.GetKeyUint()
-		if err != nil {
-			break
-		}
-
-		// We can skip validating certain claims for the following reasons:
-		// - POLICY ToDo: Do we need to test individual policy features?
-		// - CURRENT_TCB is informational only. It's best handled by policy
-		// - PLATFORM_INFO ToDO: Do we need to test individual platform features?
-		// - REPORT_DATA is a nonce supplied by user for freshness. It's used
-		//       for freshness verification, and verified as part of
-		//       evidence integrity check (session nonce check).
-		// - REPORT_ID is ephemeral, so we can't use it for verification.
-		// - REPORT_ID_MA is also ephemeral, used for migration
-		// - CHIP_ID is unique to an specific attester, but reference values could be used more generally
-		// - Current Version (CURRENT_MAJOR/MINOR/BUILD) should already be part of REPORTED_TCB.
-		//     ToDo: It is a good idea to test it anyway, but the Version type only tests for
-		//     equality, and this would trigger spurious failures
-		// - COMMITTED_TCB is informational, used by the host to advance REPORTED_TCB
-		if k == mKeyPolicy ||
-			k == mKeyCurrentTcb ||
-			k == mKeyPlatformInfo ||
-			k == mKeyReportData ||
-			k == mKeyReportID ||
-			k == mKeyReportIDMA ||
-			k == mKeyChipID ||
-			k == mKeyCommittedTcb ||
-			k == mKeyCurrentVersion ||
-			k == mKeyCommittedVersion {
-			continue
-		}
-
-		em, err = measurementByUintKey(*evidence, k)
-		if err != nil {
-			break
-		}
-
-		if em == nil {
-			err = fmt.Errorf("MKey %d not found in Evidence", k)
-			break
-		}
-
-		switch k {
-		case mKeyReportedTcb:
-			if !compareTcb(m, *em) {
-				err = ErrMismatchedReportedTCB
-				break claimsLoop
+func locateTripleUsingModel(model string, ref *comid.ValueTriples) (*comid.ValueTriple, error) {
+	if ref == nil {
+		return nil, errors.New("nil value triples")
+	}
+	if ref.IsEmpty() {
+		return nil, errors.New("no triples exist")
+	}
+	if err := ref.Valid(); err != nil {
+		return nil, fmt.Errorf("error in triples validity: %w", err)
+	}
+	for _, rv := range ref.Values {
+		model := rv.Environment.Class.GetModel()
+		switch model {
+		case "TDX_SEAM":
+			if strings.Contains(model, "SEAM") || strings.Contains(model, "TDXSEAM") {
+				return &rv, nil
 			}
-		case mKeyLaunchTcb:
-			reportedTcb, err := measurementByUintKey(*evidence, mKeyReportedTcb)
-			if err != nil {
-				break claimsLoop
+		case "TDX_ENCLAVE":
+			if strings.Contains(model, "QE") || strings.Contains(model, "Quoting Enclave") {
+				return &rv, nil
 			}
-			if !compareTcb(*reportedTcb, *em) {
-				// ToDo: Is this a failure condition?
-				log.Errorf("TEE launched with older TCB version")
+		case "TDX_VM":
+			if strings.Contains(model, "TD_VM") || strings.Contains(model, "TD") {
+				return &rv, nil
 			}
 		default:
-			if !compareMeasurements(m, *em) {
-				err = fmt.Errorf("MKey %d in reference value doesn't match with evidence", k)
-				break claimsLoop
-			}
+			return nil, fmt.Errorf("invalid model: %s supplied", model)
 		}
 	}
-
-	if err == nil {
-		appraisal.TrustVector.Hardware = ear.GenuineHardwareClaim
-		appraisal.TrustVector.RuntimeOpaque = ear.EncryptedMemoryRuntimeClaim
-	}
-
-	appraisal.UpdateStatusFromTrustVector()
-
-	evidenceJson, err := json.Marshal(evidence)
-	if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(evidenceJson, &evidenceMap)
-	if err != nil {
-		return nil, err
-	}
-
-	appraisal.VeraisonAnnotatedEvidence = &evidenceMap
-
-	return result, err
+	return nil, fmt.Errorf("unable to get the correct triples")
 }
