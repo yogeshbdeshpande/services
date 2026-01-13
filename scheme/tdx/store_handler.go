@@ -11,10 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/veraison/corim/comid"
+	tdx "github.com/veraison/corim/profiles/tdx"
 	"github.com/veraison/services/handler"
 	"github.com/veraison/services/proto"
+	"github.com/veraison/swid"
 )
 
 var (
@@ -39,6 +42,68 @@ func (s StoreHandler) GetAttestationScheme() string {
 // GetSupportedMediaTypes returns the supported media types; no-op for SEVSNP
 func (s StoreHandler) GetSupportedMediaTypes() []string {
 	return nil
+}
+
+// Note: In the TDX Case, the OID received in the Env: ClassID does not appear in the Evidence Token.
+// As a result, the Key is the Digest of the Enclave (i.e. MREnclave) for the Enclave Report
+// Key is the Digest of the MRSEAM for the SEAM Report
+// Key is the Digest of the MRTD for the TD Report
+func getRefValKeyFromEndorsement(rv comid.ValueTriple, tenantID string) (string, error) {
+	var TeeDigest []byte
+
+	meas := rv.Measurements
+	if err := rv.Valid(); err != nil {
+		return "", fmt.Errorf("invalid reference value triple %w", err)
+	}
+
+	m := &meas.Values[0]
+
+	val, err := m.Val.Get("mrtee")
+	if err != nil {
+		return "", errors.New("failed to decode mrtee from measurement extensions")
+	}
+	tD, ok := val.(*tdx.TeeDigest)
+	if !ok {
+		fmt.Printf("val was not pointer to TeeDigest")
+	}
+
+	if err := tD.Valid(); err != nil {
+		return "", fmt.Errorf("invalid TEE Digest: %w", err)
+	}
+	if tD.IsDigestExpr() == false {
+		return "", errors.New("tee digest not an expression")
+	}
+	de, err := tD.GetDigestExpr()
+	if err != nil {
+		return "", fmt.Errorf("unable to extract TEE Digest Expression: %w", err)
+	}
+	dg := comid.Digests(de.SetDigest)
+
+	for _, digest := range dg {
+		switch digest.HashAlgID {
+		case swid.Sha384:
+			// MRSEAM and MRTD MUST have SHA384
+			TeeDigest = digest.HashValue
+			break
+		case swid.Sha256:
+			// MRENCLAVE HAS sha256
+			model := rv.Environment.Class.GetModel()
+			if strings.Contains(model, "QE") || strings.Contains(model, "Quoting Eclave") {
+				TeeDigest = digest.HashValue
+				break
+			}
+		default:
+			return "", fmt.Errorf("unable to locate Digest SHA384 which is mandatory for TDX Quote")
+		}
+	}
+
+	u := url.URL{
+		Scheme: SchemeName,
+		Host:   tenantID,
+		Path:   hex.EncodeToString(TeeDigest),
+	}
+
+	return u.String(), nil
 }
 
 // getRefValKey helper to compute RefVal key from CoMID value triple
@@ -67,9 +132,11 @@ func getRefValKey(rv comid.ValueTriple, tenantID string) (string, error) {
 }
 
 // SynthKeysFromRefValue constructs TDX reference value of the form
-// "TDX://<tenantID>/<classID>". The classID
-// is unique to an tagrte environment and, as such, is
-// the best candidate to use as the key.
+// "TDX://<tenantID>/<Digest>". The Digest
+// is unique to the measurements of a target environment and, as such, is
+// the best candidate to use as the key from Endorsement.
+// The reason been, with Intel TDX profile, the OIDs identifying the Target Envrionment in the ClassID
+// do NOT appear in the Intel TDX Evidence/Quote, so this is the best way to handle this scenario
 func (s StoreHandler) SynthKeysFromRefValue(
 	tenantID string,
 	refValue *handler.Endorsement,
@@ -81,7 +148,7 @@ func (s StoreHandler) SynthKeysFromRefValue(
 		return nil, err
 	}
 
-	refValKey, err := getRefValKey(rv, tenantID)
+	refValKey, err := getRefValKeyFromEndorsement(rv, tenantID)
 	if err != nil {
 		return nil, err
 	}
